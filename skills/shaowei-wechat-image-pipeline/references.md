@@ -208,7 +208,66 @@ python3 skills/wechat-article-publisher/scripts/publish_wechat.py \
 
 ---
 
-## 6. 图注样式版本表
+## 6. 本地白板图兜底
+
+### 触发条件
+当 OpenAI-compatible 图片接口出现以下情况时触发：
+- `503 Service Unavailable`
+- `524` / Cloudflare timeout
+- 请求长时间无返回
+- `RemoteDisconnected`
+- 连续重试仍失败
+
+### 原则
+不要默认复用旧图。
+
+优先根据当前文章内容生成本地结构化白板 PNG，并继续完成：
+1. 上传微信素材库
+2. 回填正文图片 URL
+3. dry-run 检查
+4. 重发草稿箱
+
+### 本地兜底图要求
+- 白底或浅底
+- 中文主标题
+- 3-5 个核心模块
+- 方框、箭头、分组、关系线
+- 蓝 / 橙 / 绿 / 红等适度色彩区分层级
+- 底部有一句关键结论
+- 不要生成无字装饰图
+
+### Pillow 生成骨架
+```python
+from PIL import Image, ImageDraw, ImageFont
+
+W, H = 1024, 1024
+img = Image.new("RGB", (W, H), "#fbfbf7")
+draw = ImageDraw.Draw(img)
+font = ImageFont.truetype("/System/Library/Fonts/Hiragino Sans GB.ttc", 28)
+bold = ImageFont.truetype("/System/Library/Fonts/STHeiti Medium.ttc", 42)
+
+draw.text((48, 36), "中文主标题", font=bold, fill="#111827")
+# draw rounded boxes, arrows, modules, and takeaway here
+img.save(".tmp/generated-images-fallback/fallback-whiteboard.png")
+```
+
+推荐输出目录：
+- `.tmp/generated-images-fallback/`
+
+推荐文件名：
+- `fallback-cover-*.png`
+- `fallback-concept-*.png`
+- `fallback-ending-*.png`
+
+### 汇报要求
+如果使用了本地兜底，最终回复里要说明：
+- API 生图失败的原因，例如 `503` / `524`
+- 已使用本地结构化白板 PNG 兜底
+- 图片已上传微信素材并回填正文
+
+---
+
+## 7. 图注样式版本表
 
 ### Caption V1：普通简短图注
 形式：
@@ -248,7 +307,7 @@ python3 skills/wechat-article-publisher/scripts/publish_wechat.py \
 
 ---
 
-## 7. 发布前检查清单
+## 8. 发布前检查清单
 
 ### 正文检查
 - [ ] 标题使用 frontmatter `title:`，未重复写正文标题
@@ -259,7 +318,7 @@ python3 skills/wechat-article-publisher/scripts/publish_wechat.py \
 - [ ] `End` 与尾注正常
 
 ### 图片检查
-- [ ] 图片已真实生成
+- [ ] 图片已通过 API 生图或本地兜底生成
 - [ ] 图片风格符合当前模式
 - [ ] 中文白板教授图包含文字与箭头
 - [ ] 图片 URL 为微信素材 URL，不是本地路径
@@ -274,7 +333,7 @@ python3 skills/wechat-article-publisher/scripts/publish_wechat.py \
 
 ---
 
-## 8. 当前默认偏好（已从真实交互确认）
+## 9. 当前默认偏好（已从真实交互确认）
 
 - 解释型文章优先中文白板教授图
 - 不要把解释图片的话写进正文
@@ -282,3 +341,4 @@ python3 skills/wechat-article-publisher/scripts/publish_wechat.py \
 - 图注优先短格式：`图 1｜xxx`
 - 图注样式可按微信观感做补偿，不死守理论居中
 - 默认只发草稿箱，不直接正式发布
+- 生图 API 不稳定时，默认本地生成结构化白板 PNG 兜底，不复用旧图

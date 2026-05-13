@@ -125,13 +125,39 @@ description: 专门负责少威公众号场景下的 AI 生图执行。适用于
 
 如果出现 `ProxyError`、`RemoteDisconnected` 或“Remote end closed connection without response”，优先按代理干扰排查，而不是先怀疑 API Key 或模型不可用。
 
-### 6. 返回可复用结果
+## 7. Fallback When Image API Is Unstable
+
+如果真实生图接口出现以下任一情况，不要复用旧图糊过去：
+- `503 Service Unavailable`
+- `524` / Cloudflare timeout
+- 请求长时间无返回
+- `RemoteDisconnected`
+- 连续重试后仍失败
+
+默认降级策略是：**本地生成结构化白板 PNG 兜底**。
+
+兜底图仍然必须符合公众号配图要求：
+- 使用当前文章内容重新提炼标题、3-5 个核心模块和结论
+- 白底或浅底
+- 中文文字清晰可读
+- 有方框、箭头、分组、层级和适度色彩
+- 看起来像教授白板板书风格的知识图解
+- 输出为本地 PNG，后续仍必须上传微信素材库，再回填正文 URL
+
+兜底图可以使用 Python + Pillow 生成，优先读取系统中文字体，例如：
+- `/System/Library/Fonts/Hiragino Sans GB.ttc`
+- `/System/Library/Fonts/STHeiti Medium.ttc`
+
+兜底图不是最终退路，而是正式降级分支。只有在本地兜底图也无法生成时，才考虑暂时无图发布或复用旧图，并且必须在结果中明确说明。
+
+### 8. 返回可复用结果
 至少返回：
 - 本地输出路径
 - request 文件路径
 - response 文件路径
 - 图片尺寸
 - 所用模式
+- 是否使用了 API 生图或本地兜底
 
 ## Output Contract
 
