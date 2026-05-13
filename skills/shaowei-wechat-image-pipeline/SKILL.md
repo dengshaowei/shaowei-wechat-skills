@@ -1,0 +1,176 @@
+---
+name: shaowei-wechat-image-pipeline
+description: 将少威公众号的配图闭环串起来：从文章或明确图片需求出发，先做配图规划，再调用生图执行层生成真实图片，上传到微信公众号素材库，回填正文图片链接，并重新推送到草稿箱。适用于“把这篇文章的图也一起搞定”“按中文白板教授图重做并发草稿”“初稿到图文成品一条龙处理”等场景。
+---
+
+# Shaowei Wechat Image Pipeline
+
+## Role
+
+这个 skill 是少威公众号体系里的**配图闭环总控层**。
+
+它负责把以下几件事串成一条链：
+- 判断文章需要什么图
+- 规划插图位置与图类型
+- 调用生图执行层真实出图
+- 上传微信素材
+- 回填正文中的图片 URL
+- 重发公众号草稿箱
+
+它不负责：
+- 代替正文写作层重写全文
+- 代替固定格式渲染层做整篇公众号排版定稿
+- 直接正式发布到公众号线上文章（默认只进草稿箱）
+
+## Read This When Needed
+
+遇到以下任一需求时，读取本目录 `references.md`：
+- 需要选择文章类型对应的配图策略
+- 需要使用中文白板教授图模式
+- 需要复用 request / curl / 解码 / 上传 / 重发命令模板
+- 需要确定图注该用 V1 / V2 / V3 / V4 哪种样式
+- 需要发布前逐项检查
+
+## Position In The Skill Suite
+
+推荐串联位置：
+
+1. `shaowei-wechat-article`：内容生成
+2. `shaowei-wechat-writer`：固定格式渲染
+3. `shaowei-wechat-illustrator`：配图规划
+4. `shaowei-wechat-image-generator`：生图执行
+5. `shaowei-wechat-image-pipeline`：配图闭环总控
+6. `wechat-article-publisher`：草稿箱发布
+7. `shaowei-wechat-pipeline`：整篇总控
+
+## When To Use
+
+当用户出现以下意图时优先使用：
+- “把这篇文章的图也一起做完”
+- “根据文章自动生图并插进去”
+- “按中文白板教授图重做”
+- “给我生成好图并重新发草稿箱”
+- “初稿 → 成稿 → 配图 → 草稿箱，一条龙跑完”
+
+## Canonical Flow
+
+### 1. 输入文章或图片任务
+输入通常是以下之一：
+- 已成稿 markdown
+- 已经渲染好的公众号正文
+- 一篇初稿 + 用户明确要求配图
+- 明确的单图 / 多图需求
+
+### 2. 配图规划
+先判断：
+- 这篇文章要几张图
+- 每张图插在哪里
+- 每张图承担什么作用
+- 该用什么模式
+
+常用模式：
+- 场景头图
+- 概念关系图
+- 结尾收束图
+- 中文白板教授图
+
+对解释型 / 方法型 / 拆解型文章，默认优先使用 **3 张图结构**：
+1. 开头总览图
+2. 中段关系 / 缺一不可解释图
+3. 结尾映射 / 升维图
+
+### 3. 生图执行
+调用 `shaowei-wechat-image-generator`：
+- 写 request json
+- 调 OpenAI-compatible 图片接口
+- 保存 response json
+- 解码 base64 为本地 png
+
+### 4. 上传微信素材
+把本地 png 上传到微信公众号素材库，拿到：
+- `media_id`
+- `url`
+
+### 5. 回填正文
+将微信素材 URL 回填进 markdown / html 正文中对应图片位置。
+
+不要把本地绝对路径直接塞进正文；公众号正文图片必须使用可访问 URL。
+
+### 6. 图片说明处理
+默认规则：
+- **不要把解释图片的话写进正文段落里**
+- 图片说明单独放在图片下方
+- 默认使用简短图注，而不是解释型长句
+- 推荐格式：`图 1｜xxx`
+
+如果用户明确提出视觉要求，可继续细化图注样式：
+- 居中
+- 更明显
+- 往图片内部压一点
+- 按微信渲染观感做左右补偿
+
+### 7. 重发草稿箱
+调用 `wechat-article-publisher` 重新生成草稿。
+
+默认目标：
+- 只创建或更新草稿
+- 不直接正式发布
+
+## Chinese Whiteboard Professor Branch
+
+当用户要求：
+- 白板教授图
+- 中文讲解图
+- 带文字关系图
+- 老师讲课式知识图解
+
+默认进入这个分支，要求：
+- 图里必须有中文文字
+- 必须有箭头 / 框 / 连接关系
+- 图本身承担解释作用
+- 不要抽象装饰图
+- 不要只有氛围感
+
+如果模型直接生成中文不稳定，可采用两段式策略：
+1. 先生成结构底图
+2. 再后期叠字
+
+但在时间优先场景下，可先尝试一步直出，快速验证风格方向。
+
+## Output Requirements
+
+执行完成后，至少产出以下结果：
+- 更新后的 markdown 文件路径
+- 生图输出路径列表
+- 微信素材 URL 列表
+- 最新草稿 `draft_media_id`
+- 本地 preview 文件路径（如果发布脚本返回）
+
+如果用户要求微调样式，还应明确记录当前采用的是哪一种：
+- 普通简短图注
+- 居中图注
+- 居中胶囊图注
+- 视觉右移补偿图注
+
+## Non-Negotiables
+
+- 不要只给 prompt 就结束；用户要求闭环时，要尽量把图真的生出来
+- 不要把本地图片路径直接当公众号正文图片源
+- 不要默认用无字抽象图代替用户明确要求的中文讲解图
+- 不要直接正式发布，除非用户明确要求
+- 如果用户已有固定 SOP，优先按用户 SOP 跑
+
+## Reusable File Conventions
+
+推荐复用以下目录约定：
+- request 文件：`.tmp/ai-*.request.json`
+- response 文件：`.tmp/image-responses/*.response.json`
+- 输出图片：`.tmp/generated-images*/`
+- 重发脚本：`.tmp/republish-*.sh`
+
+## Integration Guidance
+
+- 纯配图规划：调用 `shaowei-wechat-illustrator`
+- 纯生图执行：调用 `shaowei-wechat-image-generator`
+- 需要完整图文闭环：调用本 skill
+- 需要整篇文章总控：由 `shaowei-wechat-pipeline` 在合适步骤接入本 skill

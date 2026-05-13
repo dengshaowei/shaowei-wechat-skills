@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+.tmp/
+image-responses/
+generated-images*/
+*.response.json
+*.request.json
+config.json
+*.log
+
