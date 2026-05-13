@@ -111,6 +111,11 @@ description: 专门负责少威公众号场景下的 AI 生图执行。适用于
 - `${OPENAI_BASE_URL}/images/generations`
 - 若使用 `BASE_URL` 约定，则等价端点为 `${BASE_URL}/v1/images/generations`
 
+默认超时：
+- 生图请求读取超时设为 **300 秒**
+- 如果接口在 300 秒内正常返回，必须优先使用 API 生图结果
+- 不要使用 60 / 75 / 90 秒这类短超时提前判定失败；这套接口已实测可能接近 90 秒才返回
+
 ## 6. Network / Proxy Constraint
 
 少威当前这套外部图片接口，已经验证：
@@ -130,7 +135,7 @@ description: 专门负责少威公众号场景下的 AI 生图执行。适用于
 如果真实生图接口出现以下任一情况，不要复用旧图糊过去：
 - `503 Service Unavailable`
 - `524` / Cloudflare timeout
-- 请求长时间无返回
+- 请求超过 **300 秒** 仍无返回
 - `RemoteDisconnected`
 - 连续重试后仍失败
 

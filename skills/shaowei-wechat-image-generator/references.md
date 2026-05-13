@@ -125,6 +125,12 @@ OpenAI-compatible images endpoint：
 - Python `requests`：使用 `session = requests.Session(); session.trust_env = False`
 - shell：显式设置 `HTTPS_PROXY= HTTP_PROXY= ALL_PROXY= NO_PROXY='*'`
 
+默认超时：
+- 生图请求读取超时设为 **300 秒**
+- Python `requests.post(..., timeout=300)`
+- 如果返回 `url` 后还需要下载图片，图片下载也使用 `timeout=300`
+- 不要用 60 / 75 / 90 秒短超时提前判定接口失败
+
 返回中优先读取：
 - `data[0].b64_json`
 - 兼容字段：`base64` / `image_base64`

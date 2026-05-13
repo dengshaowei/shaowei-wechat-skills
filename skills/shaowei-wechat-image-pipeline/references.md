@@ -117,7 +117,7 @@
 ### 4.2 生图 curl 模板
 ```bash
 curl --http1.1 \
-  --max-time 650 \
+  --max-time 300 \
   --connect-timeout 30 \
   --location \
   --request POST "${BASE_URL}/v1/images/generations" \
@@ -144,7 +144,7 @@ curl --http1.1 \
 ```bash
 HTTPS_PROXY= HTTP_PROXY= ALL_PROXY= NO_PROXY='*' \
 curl --http1.1 \
-  --max-time 650 \
+  --max-time 300 \
   --connect-timeout 30 \
   --location \
   --request POST "${BASE_URL}/v1/images/generations" \
@@ -214,7 +214,7 @@ python3 skills/wechat-article-publisher/scripts/publish_wechat.py \
 当 OpenAI-compatible 图片接口出现以下情况时触发：
 - `503 Service Unavailable`
 - `524` / Cloudflare timeout
-- 请求长时间无返回
+- 请求超过 300 秒仍无返回
 - `RemoteDisconnected`
 - 连续重试仍失败
 
